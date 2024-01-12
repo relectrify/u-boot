@@ -14,20 +14,6 @@ endif
 IMAGE_SIZE= $(shell cat $(obj)/u-boot-spl.bin | wc -c)
 MAX_SIZE= $(shell printf "%d" $(CONFIG_SYS_K3_MAX_DOWNLODABLE_IMAGE_SIZE))
 
-ifeq ($(CONFIG_SYS_K3_KEY), "")
-KEY=""
-# On HS use real key or warn if not available
-ifeq ($(CONFIG_TI_SECURE_DEVICE),y)
-ifneq ($(wildcard $(TI_SECURE_DEV_PKG)/keys/custMpk.pem),)
-KEY=$(TI_SECURE_DEV_PKG)/keys/custMpk.pem
-else
-$(warning "WARNING: signing key not found. Random key will NOT work on HS hardware!")
-endif
-endif
-else
-KEY=$(patsubst "%",$(srctree)/%,$(CONFIG_SYS_K3_KEY))
-endif
-
 # X509 SWRV default
 SWRV = $(CONFIG_K3_X509_SWRV)
 # On HS use SECDEV provided software revision or warn if not available
@@ -53,7 +39,7 @@ image_check: $(obj)/u-boot-spl.bin FORCE
 
 tiboot3.bin: image_check FORCE
 	$(srctree)/tools/k3_gen_x509_cert.sh -c 16 -b $(obj)/u-boot-spl.bin \
-				-o $@ -l $(CONFIG_SPL_TEXT_BASE) -r $(SWRV) -k $(KEY)
+				-o $@ -l $(CONFIG_SPL_TEXT_BASE) -r $(SWRV) -k $(K3_KEY)
 
 INPUTS-y	+= tiboot3.bin
 endif
