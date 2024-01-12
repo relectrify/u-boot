@@ -191,7 +191,7 @@ int do_optee_rpmb_read(struct cmd_tbl *cmdtp, int flag, int argc,
 	void *buffer;
 	char *endp;
 
-	if (argc != 3)
+	if (argc != 3 && argc != 4)
 		return CMD_RET_USAGE;
 
 	name = argv[1];
@@ -204,8 +204,11 @@ int do_optee_rpmb_read(struct cmd_tbl *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 
 	if (read_persistent_value(name, bytes, buffer, &bytes_read) == 0) {
-		printf("Read %zu bytes, value = %s\n", bytes_read,
-		       (char *)buffer);
+		if (argc == 4)
+			env_set(argv[3], buffer);
+		else
+			printf("Read %zu bytes, value = %s\n", bytes_read,
+			       (char *)buffer);
 		free(buffer);
 		return CMD_RET_SUCCESS;
 	}
@@ -241,7 +244,7 @@ int do_optee_rpmb_write(struct cmd_tbl *cmdtp, int flag, int argc,
 }
 
 static struct cmd_tbl cmd_optee_rpmb[] = {
-	U_BOOT_CMD_MKENT(read_pvalue, 3, 0, do_optee_rpmb_read, "", ""),
+	U_BOOT_CMD_MKENT(read_pvalue, 4, 0, do_optee_rpmb_read, "", ""),
 	U_BOOT_CMD_MKENT(write_pvalue, 3, 0, do_optee_rpmb_write, "", ""),
 };
 
@@ -267,6 +270,7 @@ static int do_optee_rpmb(struct cmd_tbl *cmdtp, int flag, int argc,
 U_BOOT_CMD (
 	optee_rpmb, 29, 0, do_optee_rpmb,
 	"Provides commands for testing secure storage on RPMB on OPTEE",
-	"read_pvalue <name> <bytes> - read a persistent value <name>\n"
+	"read_pvalue <name> <bytes> [[varname]] - read a persistent value <name>\n"
+	"                                         optionally store into varname\n"
 	"optee_rpmb write_pvalue <name> <value> - write a persistent value <name>\n"
 	);
