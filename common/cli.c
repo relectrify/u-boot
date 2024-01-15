@@ -197,15 +197,7 @@ void cli_secure_boot_cmd(const char *cmd)
 
 	/* Find the command directly. */
 #ifdef CONFIG_CMDLINE
-	cmdtp = find_cmd(cmd);
-	if (!cmdtp) {
-		printf("## Error: \"%s\" not defined\n", cmd);
-		goto err;
-	}
-
-	/* Run the command, forcing no flags and faking argc and argv. */
-	rc = (cmdtp->cmd)(cmdtp, 0, 1, (char **)&cmd);
-
+	rc = run_command_list(cmd, -1, 0);
 #else
 	rc = board_run_command(cmd);
 #endif
