@@ -39,6 +39,23 @@ static size_t ti_secure_cert_length(void *p_image)
 	return seq_length + 4;
 }
 
+static int ti_encryption_detected(void *p_image)
+{
+	/* FIXME: This really should parse the DER properly, as it's possible
+	 * that the sequence below could randomly end up somewhere else.. */
+
+	/* look for OID 1.3.6.1.4.1.294.1.4 */
+	const char needle[] = { 0x06, 0x09, 0x2B, 0x06, 0x01, 0x04,
+				0x01, 0x82, 0x26, 0x01, 0x04 };
+	const char *haystack = p_image;
+	const size_t len = ti_secure_cert_length(p_image);
+	for (size_t off = 0; off < len - sizeof needle; ++off) {
+		if (!memcmp(haystack + off, needle, sizeof needle))
+			return 1;
+	}
+	return 0;
+}
+
 void ti_secure_image_post_process(void **p_image, size_t *p_size)
 {
 	struct ti_sci_handle *ti_sci = get_ti_sci_handle();
@@ -47,6 +64,7 @@ void ti_secure_image_post_process(void **p_image, size_t *p_size)
 	u64 image_addr;
 	u32 image_size;
 	int ret;
+	int encrypted;
 
 	image_size = *p_size;
 
@@ -80,8 +98,11 @@ void ti_secure_image_post_process(void **p_image, size_t *p_size)
 		return;
 	}
 
+	encrypted = ti_encryption_detected(*p_image);
+
 	/* Clean out image so it can be seen by system firmware */
 	image_addr = dma_map_single(*p_image, *p_size, DMA_BIDIRECTIONAL);
+
 
 	debug("Authenticating image at address 0x%016llx\n", image_addr);
 	debug("Authenticating image of size %d bytes\n", image_size);
@@ -94,8 +115,20 @@ void ti_secure_image_post_process(void **p_image, size_t *p_size)
 	}
 
 	/* Invalidate any stale lines over data written by system firmware */
-	if (image_size)
+	if (image_size) {
 		dma_unmap_single(image_addr, image_size, DMA_BIDIRECTIONAL);
+
+		/* we hacked in the original unpadded unencrypted length
+		 * into the last four bytes */
+		if (encrypted) {
+			uint32_t orig_size = be32_to_cpu(readl_relaxed(*p_image + image_size - 4));
+			if (orig_size >= image_size) {
+				printf("Invalid decrypted length!\n");
+				hang();
+			}
+			image_size = orig_size;
+		}
+	}
 
 	/*
 	 * The image_size returned may be 0 when the authentication process has
@@ -115,5 +148,5 @@ void ti_secure_image_post_process(void **p_image, size_t *p_size)
 	if (!(IS_ENABLED(CONFIG_SPL_BUILD) &&
 	      IS_ENABLED(CONFIG_SPL_YMODEM_SUPPORT) &&
 	      spl_boot_device() == BOOT_DEVICE_UART))
-		printf("Authentication passed\n");
+		printf("Authentication%s passed\n", encrypted ? " and decryption" : "");
 }
