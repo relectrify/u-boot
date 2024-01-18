@@ -1040,6 +1040,8 @@ dtb-$(CONFIG_TARGET_DURIAN) += phytium-durian.dtb
 
 dtb-$(CONFIG_TARGET_PRESIDIO_ASIC) += ca-presidio-engboard.dtb
 
+include $(srctree)/scripts/Makefile.dts
+
 targets += $(dtb-y)
 
 # Add any required device tree compiler flags here

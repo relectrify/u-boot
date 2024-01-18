@@ -48,6 +48,8 @@ dtb-$(CONFIG_TARGET_M5485EVB) += M5485AFE.dtb \
 	M5485GFE.dtb \
 	M5485HFE.dtb
 
+include $(srctree)/scripts/Makefile.dts
+
 targets += $(dtb-y)
 
 DTC_FLAGS += -R 4 -p 0x1000

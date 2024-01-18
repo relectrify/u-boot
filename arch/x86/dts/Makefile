@@ -22,6 +22,8 @@ dtb-y += bayleybay.dtb \
 	slimbootloader.dtb \
 	baytrail_som-db5800-som-6867.dtb
 
+include $(srctree)/scripts/Makefile.dts
+
 targets += $(dtb-y)
 
 DTC_FLAGS += -R 4 -p 0x1000
