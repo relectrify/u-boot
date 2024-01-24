@@ -112,7 +112,9 @@ static int read_persistent_value(const char *name,
 	if (rc)
 		goto out;
 
-	if (param[1].u.memref.size > buffer_size) {
+	/* size == buffer_size if the buffer was exactly the right size or
+	 * if it was too small */
+	if (param[1].u.memref.size >= buffer_size) {
 		rc = -EINVAL;
 		goto out;
 	}
