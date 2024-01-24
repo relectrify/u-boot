@@ -79,7 +79,7 @@ static int read_persistent_value(const char *name,
 	struct tee_shm *shm_name;
 	struct tee_shm *shm_buf;
 	struct tee_param param[2];
-	size_t name_size = strlen(name) + 1;
+	size_t name_size = strlen(name);
 
 	if (!tee)
 		if (avb_ta_open_session())
@@ -139,7 +139,7 @@ static int write_persistent_value(const char *name,
 	struct tee_shm *shm_name;
 	struct tee_shm *shm_buf;
 	struct tee_param param[2];
-	size_t name_size = strlen(name) + 1;
+	size_t name_size = strlen(name);
 
 	if (!tee) {
 		if (avb_ta_open_session())
@@ -206,6 +206,9 @@ int do_optee_rpmb_read(struct cmd_tbl *cmdtp, int flag, int argc,
 		return CMD_RET_FAILURE;
 
 	if (read_persistent_value(name, bytes, buffer, &bytes_read) == 0) {
+		/* null terminate as we treat this as a string
+		 * this is safe as bytes_read is always < bytes */
+		((char *)buffer)[bytes_read] = 0;
 		if (argc == 4)
 			env_set(argv[3], buffer);
 		else
@@ -234,9 +237,9 @@ int do_optee_rpmb_write(struct cmd_tbl *cmdtp, int flag, int argc,
 	name = argv[1];
 	value = argv[2];
 
-	if (write_persistent_value(name, strlen(value) + 1,
+	if (write_persistent_value(name, strlen(value),
 				   (const uint8_t *)value) == 0) {
-		printf("Wrote %zu bytes\n", strlen(value) + 1);
+		printf("Wrote %zu bytes\n", strlen(value));
 		return CMD_RET_SUCCESS;
 	}
 
